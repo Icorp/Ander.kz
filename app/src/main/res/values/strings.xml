@@ -3,6 +3,11 @@
     <string name="hint_title">Ән атауы</string>
     <string name="hint_body">Әншінің аты</string>
     <string name="required">Required</string>
+    <string name="main_web"><a href="https://www.ander.kz/">Ander.kz</a></string>
+    <string name="policy_privacy_link"><a href="https://cap.kz/AnderPrivacyPolicy/">Құпиялылық саясаты</a></string>
+    <string name="our_apps_link"><a href="https://www.cap.kz/ourAndroidApps">Біздің Андройд қосымшаларымы</a></string>
+    <string name="send_message_us"><a href="https://www.cap.kz/habarlasuAndroid">Хабарласу</a></string>
+    <string name="todo">TODO</string>
 
     <string-array name="headings">
         <item>Әндер</item>

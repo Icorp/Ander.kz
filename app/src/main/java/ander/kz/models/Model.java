@@ -22,6 +22,7 @@ public class Model {
 
     public Model(String userId, String username, String kzSongTitle, String kzSongSinger) {
     }
+    public Model(){}
     @Exclude
     public Map<String, Object> toMap() {
         HashMap<String, Object> result = new HashMap<>();

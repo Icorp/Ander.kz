@@ -37,6 +37,7 @@ import ander.kz.CardDetailActivity;
 import ander.kz.Menu;
 import ander.kz.R;
 import ander.kz.Search;
+import ander.kz.SetttingsActivity;
 import ander.kz.models.Model;
 import ander.kz.viewholder.CardViewHolder;
 
@@ -279,7 +280,7 @@ public abstract class CardListFragment extends Fragment {
                 showSortDialog();
                 return true;
             case R.id.settings:
-                Intent settingsIntent = new Intent(getActivity(), Menu.class);
+                Intent settingsIntent = new Intent(getActivity(), SetttingsActivity.class);
                 startActivity(settingsIntent);
                 return true;
             default:
