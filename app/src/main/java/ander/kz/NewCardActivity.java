@@ -2,12 +2,15 @@ package ander.kz;
 
 import android.annotation.SuppressLint;
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
 import android.text.TextUtils;
 import android.view.View;
 import android.widget.EditText;
 import android.widget.Toast;
 
+import androidx.appcompat.app.AppCompatActivity;
+
+import com.google.android.material.floatingactionbutton.FloatingActionButton;
+import com.google.firebase.auth.FirebaseAuth;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
@@ -16,11 +19,12 @@ import com.google.firebase.database.ValueEventListener;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Objects;
 
 import ander.kz.models.Model;
 import ander.kz.models.User;
 
-public class NewCardActivity extends BaseActivity {
+public class NewCardActivity extends AppCompatActivity {
 	private DatabaseReference mDatabase;
 	private EditText mSongName, mSingerName;
 	private FloatingActionButton mSubmitButton;
@@ -108,5 +112,8 @@ public class NewCardActivity extends BaseActivity {
 		childUpdates.put("/user-cards/" + userId + "/" + key, cardValues);
 
 		mDatabase.updateChildren(childUpdates);
+	}
+	public String getUid() {
+		return Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
 	}
 }

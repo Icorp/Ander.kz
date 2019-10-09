@@ -1,9 +1,10 @@
 package ander.kz;
 
 import android.os.Bundle;
-import android.support.v7.app.AppCompatActivity;
 import android.text.method.LinkMovementMethod;
 import android.widget.TextView;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 public class SetttingsActivity extends AppCompatActivity {
     @Override

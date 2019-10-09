@@ -20,7 +20,6 @@
         </activity>
         <activity android:name=".NewCardActivity" />
         <activity android:name=".CardDetailActivity" />
-        <activity android:name=".BaseActivity" />
         <activity android:name=".SetttingsActivity"/>
 
         <meta-data

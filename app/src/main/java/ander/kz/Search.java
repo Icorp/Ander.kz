@@ -2,12 +2,6 @@ package ander.kz;
 
 import android.content.Intent;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.v4.view.MenuItemCompat;
-import android.support.v7.app.AppCompatActivity;
-import android.support.v7.widget.LinearLayoutManager;
-import android.support.v7.widget.RecyclerView;
-import android.support.v7.widget.SearchView;
 import android.text.TextUtils;
 import android.util.Log;
 import android.view.LayoutInflater;
@@ -15,6 +9,14 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.appcompat.widget.SearchView;
+import androidx.core.view.MenuItemCompat;
+import androidx.recyclerview.widget.LinearLayoutManager;
+import androidx.recyclerview.widget.RecyclerView;
+
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
 import com.google.firebase.auth.FirebaseAuth;
@@ -29,9 +31,10 @@ import java.util.Objects;
 import ander.kz.models.Model;
 import ander.kz.viewholder.CardViewHolder;
 
+import static androidx.appcompat.widget.SearchView.*;
+
 public class Search extends AppCompatActivity {
     private DatabaseReference mDatabase;
-    private FirebaseRecyclerAdapter mAdapter;
     private RecyclerView mRecycler;
 
     FirebaseDatabase mFirebaseDatabase;
@@ -66,7 +69,7 @@ public class Search extends AppCompatActivity {
         getMenuInflater().inflate(R.menu.second_menu, menu);
         MenuItem item = menu.findItem(R.id.action_search);
         searchView = (SearchView) MenuItemCompat.getActionView(item);
-        searchView.setOnQueryTextListener(new SearchView.OnQueryTextListener() {
+        searchView.setOnQueryTextListener(new OnQueryTextListener() {
             @Override
             public boolean onQueryTextSubmit(String query) {
                 searchData(query);
@@ -97,7 +100,9 @@ public class Search extends AppCompatActivity {
 
         options = new FirebaseRecyclerOptions.Builder<Model>().setQuery(firebaseSearchQuery, Model.class).build();
 
-        mAdapter = new FirebaseRecyclerAdapter<Model, CardViewHolder>(options) {
+        // Need to write to both places the post is stored
+        // Run two transactions
+        FirebaseRecyclerAdapter mAdapter = new FirebaseRecyclerAdapter<Model, CardViewHolder>(options) {
             @Override
             protected void onBindViewHolder(@NonNull CardViewHolder viewHolder, int position, @NonNull final Model model) {
                 final DatabaseReference cardRef = getRef(position);
@@ -115,7 +120,7 @@ public class Search extends AppCompatActivity {
                     viewHolder.mImage.setImageResource(R.drawable.on_line_logo);
                 else viewHolder.mImage.setImageResource(R.drawable.off_line_logo);
 
-                if(model.stars.containsKey(getUid())){
+                if (model.stars.containsKey(getUid())) {
                     viewHolder.starView.setImageResource(R.drawable.ic_toggle_star_24);
                 } else {
                     viewHolder.starView.setImageResource(R.drawable.ic_toggle_star_outline_24);

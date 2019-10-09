@@ -2,27 +2,30 @@ package ander.kz;
 
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import android.widget.TextView;
 import android.widget.Toast;
+
+import androidx.annotation.NonNull;
+import androidx.appcompat.app.AppCompatActivity;
+
 import com.google.android.gms.ads.AdRequest;
 import com.google.android.gms.ads.AdSize;
 import com.google.android.gms.ads.AdView;
 import com.google.android.gms.ads.MobileAds;
-import com.google.android.youtube.player.YouTubeInitializationResult;
-import com.google.android.youtube.player.YouTubePlayer;
-import com.google.android.youtube.player.YouTubePlayerSupportFragment;
 import com.google.firebase.database.DataSnapshot;
 import com.google.firebase.database.DatabaseError;
 import com.google.firebase.database.DatabaseReference;
 import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.ValueEventListener;
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.YouTubePlayer;
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.listeners.AbstractYouTubePlayerListener;
+import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTubePlayerView;
 
-import java.util.Objects;
 
 import ander.kz.models.Model;
 
-public class CardDetailActivity extends BaseActivity implements View.OnClickListener,YouTubePlayer.OnInitializedListener, YouTubePlayer.PlaybackEventListener, YouTubePlayer.PlayerStateChangeListener   {
+
+public class CardDetailActivity extends AppCompatActivity {
 	private static final String TAG = "CardDetailActivity";
 	public static final String EXTRA_CARD_KEY = "card_key";
 	private ValueEventListener mCardListener;
@@ -30,8 +33,6 @@ public class CardDetailActivity extends BaseActivity implements View.OnClickList
 	public DatabaseReference mCardReference;
 	public TextView mSongName, mSingerName, mComposer, mAuthor, mSongText,video_id;
 	public AdView mAdView;
-	public YouTubePlayerSupportFragment playerView;
-	public String API_KEY = "AIzaSyAYHLYDF30xl_ArDlkiAeVnYtBPhNRBJYQ";
 	public String Video_Id;
 
 	@Override
@@ -49,9 +50,20 @@ public class CardDetailActivity extends BaseActivity implements View.OnClickList
 		mAdView.loadAd(adRequest);
 
 		//YoutubePlayerAPi
-		playerView = (YouTubePlayerSupportFragment) getSupportFragmentManager()
-				.findFragmentById(R.id.playerview);
-		Objects.requireNonNull(playerView).initialize(API_KEY,this);
+        YouTubePlayerView youTubePlayerView = findViewById(R.id.youtube_player_view);
+        getLifecycle().addObserver(youTubePlayerView);
+
+        youTubePlayerView.addYouTubePlayerListener(new AbstractYouTubePlayerListener() {
+			@Override
+			public void onReady(@NonNull YouTubePlayer youTubePlayer) {
+				System.out.println(Video_Id);
+				if (Video_Id.length() > 0)
+					youTubePlayer.loadVideo(Video_Id.substring(32),0);
+				else {
+					youTubePlayer.cueVideo(Video_Id,0);
+				}
+			}
+		});
 
 		//Initiliazing
 		mSongName = findViewById(R.id.textViewSongNameGet);
@@ -111,82 +123,5 @@ public class CardDetailActivity extends BaseActivity implements View.OnClickList
 		if (mCardListener != null) {
 			mCardReference.removeEventListener(mCardListener);
 		}
-	}
-
-	@Override
-	public void onClick(View v) {
-	}
-
-	@Override
-	public void onInitializationSuccess(YouTubePlayer.Provider provider, YouTubePlayer youTubePlayer, boolean b) {
-		youTubePlayer.setPlaybackEventListener(this);
-		youTubePlayer.setPlaybackEventListener(this);
-		if (!b) {
-			if (Video_Id.length() > 0)
-				youTubePlayer.cueVideo(Video_Id.substring(32));
-			else {
-				youTubePlayer.cueVideo(Video_Id);
-			}
-		}
-	}
-
-	@Override
-	public void onInitializationFailure(YouTubePlayer.Provider provider, YouTubeInitializationResult youTubeInitializationResult) {
-
-	}
-
-	@Override
-	public void onPlaying() {
-
-	}
-
-	@Override
-	public void onPaused() {
-
-	}
-
-	@Override
-	public void onStopped() {
-
-	}
-
-	@Override
-	public void onBuffering(boolean b) {
-
-	}
-
-	@Override
-	public void onSeekTo(int i) {
-
-	}
-
-	@Override
-	public void onLoading() {
-
-	}
-
-	@Override
-	public void onLoaded(String s) {
-
-	}
-
-	@Override
-	public void onAdStarted() {
-
-	}
-
-	@Override
-	public void onVideoStarted() {
-
-	}
-
-	@Override
-	public void onVideoEnded() {
-
-	}
-
-	@Override
-	public void onError(YouTubePlayer.ErrorReason errorReason) {
-
 	}
 }
