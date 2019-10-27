@@ -14,4 +14,9 @@ public class MySongs extends CardListFragment {
                 .equalTo(true);
 
     }
+
+    @Override
+    public String getStringQuery(String databaseString) {
+        return "anything";
+    }
 }

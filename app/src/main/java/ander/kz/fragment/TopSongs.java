@@ -9,4 +9,9 @@ public class TopSongs extends CardListFragment {
     public Query getQuery(DatabaseReference databaseReference) {
         return databaseReference.child("songsDB").limitToLast(30).orderByChild("starCount");
     }
+
+    @Override
+    public String getStringQuery(String databaseString) {
+        return "anything";
+    }
 }

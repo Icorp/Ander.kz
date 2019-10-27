@@ -24,6 +24,8 @@ import com.pierfrancescosoffritti.androidyoutubeplayer.core.player.views.YouTube
 
 import ander.kz.models.Model;
 
+import static android.view.View.GONE;
+
 
 public class CardDetailActivity extends AppCompatActivity {
 	private static final String TAG = "CardDetailActivity";
@@ -50,7 +52,7 @@ public class CardDetailActivity extends AppCompatActivity {
 		mAdView.loadAd(adRequest);
 
 		//YoutubePlayerAPi
-        YouTubePlayerView youTubePlayerView = findViewById(R.id.youtube_player_view);
+        final YouTubePlayerView youTubePlayerView = findViewById(R.id.youtube_player_view);
         getLifecycle().addObserver(youTubePlayerView);
 
         youTubePlayerView.addYouTubePlayerListener(new AbstractYouTubePlayerListener() {
@@ -61,6 +63,7 @@ public class CardDetailActivity extends AppCompatActivity {
 					youTubePlayer.loadVideo(Video_Id.substring(32),0);
 				else {
 					youTubePlayer.cueVideo(Video_Id,0);
+					youTubePlayerView.setVisibility(GONE);
 				}
 			}
 		});

@@ -1,7 +1,6 @@
 package ander.kz.fragment;
 
-import android.app.Activity;
-import android.app.Dialog;
+import android.content.Context;
 import android.content.DialogInterface;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -12,14 +11,14 @@ import android.view.LayoutInflater;
 import android.view.MenuItem;
 import android.view.View;
 import android.view.ViewGroup;
-import android.widget.LinearLayout;
-import android.widget.ProgressBar;
 
 import androidx.annotation.NonNull;
 import androidx.appcompat.app.AlertDialog;
 import androidx.fragment.app.Fragment;
+import androidx.paging.PagedList;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+import androidx.swiperefreshlayout.widget.SwipeRefreshLayout;
 
 import com.firebase.ui.database.FirebaseRecyclerAdapter;
 import com.firebase.ui.database.FirebaseRecyclerOptions;
@@ -31,11 +30,13 @@ import com.google.firebase.database.FirebaseDatabase;
 import com.google.firebase.database.MutableData;
 import com.google.firebase.database.Query;
 import com.google.firebase.database.Transaction;
+import com.shreyaspatil.firebase.recyclerpagination.DatabasePagingOptions;
+import com.shreyaspatil.firebase.recyclerpagination.FirebaseRecyclerPagingAdapter;
+import com.shreyaspatil.firebase.recyclerpagination.LoadingState;
 
 import java.util.Objects;
 
 import ander.kz.CardDetailActivity;
-import ander.kz.Menu;
 import ander.kz.R;
 import ander.kz.Search;
 import ander.kz.SetttingsActivity;
@@ -43,16 +44,18 @@ import ander.kz.models.Model;
 import ander.kz.viewholder.CardViewHolder;
 
 public abstract class CardListFragment extends Fragment {
-    public Activity mActivity;
-    public DatabaseReference mDatabase;
-    public FirebaseRecyclerAdapter<Model, CardViewHolder> mAdapter;
-    public RecyclerView mRecycler;
+    private DatabaseReference mDatabase;
+    private FirebaseRecyclerPagingAdapter<Model, CardViewHolder> mAdapter;
+    private RecyclerView mRecycler;
+    private SwipeRefreshLayout mSwipeRefreshLayout;
+    private Query mQuery;
+
 
     //For Sorting
-    LinearLayoutManager mLayoutManager;
+    private LinearLayoutManager mLayoutManager;
 
     //For saving sort setting
-    SharedPreferences mSharedPref;
+    private SharedPreferences mSharedPref;
 
 
     public CardListFragment() {
@@ -61,64 +64,163 @@ public abstract class CardListFragment extends Fragment {
     @Override
     public View onCreateView(@NonNull LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
         super.onCreateView(inflater, container, savedInstanceState);
-        View rootView = inflater.inflate(R.layout.fragment_all_cards, container, false);
-        mRecycler = rootView.findViewById(R.id.messages_list);
-        mRecycler.setHasFixedSize(true);
+        setHasOptionsMenu(true);
+        View rootView;
+        mDatabase = FirebaseDatabase.getInstance().getReference();
 
-        //Sorting
-        mSharedPref = getActivity().getSharedPreferences("SortSetting", getActivity().MODE_PRIVATE);
-        String mSorting = mSharedPref.getString("Sort", "Жаңа"); //where if no setting is selected
+        //PaginationAdapter
+        if (getStringQuery("").equals("songsDB")) {
+            rootView = inflater.inflate(R.layout.firebase_pagination, container, false);
+            mRecycler = rootView.findViewById(R.id.recycler_view);
+            mQuery = mDatabase.child("songsDB");
 
-        if (mSorting.equals("Жаңа")) {
-            //This will load the items from button means newest first
-            mLayoutManager = new LinearLayoutManager(getActivity());
-            mLayoutManager.setReverseLayout(true);
-            mLayoutManager.setStackFromEnd(true);
-        } else if (mSorting.equals("Ескі")) {
-            //This will load the items from bottom means oldest first
-            mLayoutManager = new LinearLayoutManager(getActivity());
-            mLayoutManager.setReverseLayout(false);
-            mLayoutManager.setStackFromEnd(false);
+            mSwipeRefreshLayout = rootView.findViewById(R.id.swipe_refresh_layout);
+
+            setUpAdapterPagination();
         }
 
-        mDatabase = FirebaseDatabase.getInstance().getReference();
+        //NoPaginationAdapter
+        else {
+            //Sorting
+            mSharedPref = getActivity().getSharedPreferences("SortSetting", getActivity().MODE_PRIVATE);
+            String mSorting = mSharedPref.getString("Sort", "Жаңа"); //where if no setting is selected
+
+            if (mSorting.equals("Жаңа")) {
+                //This will load the items from button means newest first
+                mLayoutManager = new LinearLayoutManager(getActivity());
+                mLayoutManager.setReverseLayout(true);
+                mLayoutManager.setStackFromEnd(true);
+            } else if (mSorting.equals("Ескі")) {
+                //This will load the items from bottom means oldest first
+                mLayoutManager = new LinearLayoutManager(getActivity());
+                mLayoutManager.setReverseLayout(false);
+                mLayoutManager.setStackFromEnd(false);
+            }
+
+
+            rootView = inflater.inflate(R.layout.fragments_all_cards, container, false);
+            mRecycler = rootView.findViewById(R.id.messages_list);
+            setUpAdapterNoPagination();
+        }
+
+        mRecycler.setHasFixedSize(true);
         mDatabase.keepSynced(true);
         return rootView;
     }
 
-    @Override
-    public void onActivityCreated(Bundle savedInstanceState) {
-        super.onActivityCreated(savedInstanceState);
-        setHasOptionsMenu(true);
+    private void setUpAdapterPagination() {
 
-        mActivity = getActivity();
 
+        //Initialize Paging Configurations
+        PagedList.Config config = new PagedList.Config.Builder()
+                .setEnablePlaceholders(false)
+                .setPrefetchDistance(5)
+                .setPageSize(30)
+                .build();
+
+        //Initialize Firebase Paging Options
+        DatabasePagingOptions<Model> options = new DatabasePagingOptions.Builder<Model>()
+                .setLifecycleOwner(this)
+                .setQuery(mQuery, config, Model.class)
+                .build();
+
+        //Initializing Adapter
+        mAdapter = new FirebaseRecyclerPagingAdapter<Model, CardViewHolder>(options) {
+            @NonNull
+            @Override
+            public CardViewHolder onCreateViewHolder(@NonNull ViewGroup parent, int viewType) {
+                LayoutInflater inflater = LayoutInflater.from(parent.getContext());
+                return new CardViewHolder(inflater.inflate(R.layout.item_card, parent, false));
+            }
+
+            @Override
+            protected void onBindViewHolder(@NonNull CardViewHolder viewHolder, int i, @NonNull Model model) {
+                final DatabaseReference cardRef = getRef(i);
+
+                viewHolder.itemView.setOnClickListener(new View.OnClickListener() {
+                    @Override
+                    public void onClick(View v) {
+                        Intent intent = new Intent(v.getContext(), CardDetailActivity.class);
+                        intent.putExtra(CardDetailActivity.EXTRA_CARD_KEY, cardRef.getKey());
+                        startActivity(intent);
+                    }
+                });
+
+                if (!TextUtils.isEmpty(model.kzSongytblink))
+                    viewHolder.mImage.setImageResource(R.drawable.on_line_logo);
+                else viewHolder.mImage.setImageResource(R.drawable.off_line_logo);
+
+                if (model.stars.containsKey(getUid())) {
+                    viewHolder.starView.setImageResource(R.drawable.ic_toggle_star_24);
+                } else {
+                    viewHolder.starView.setImageResource(R.drawable.ic_toggle_star_outline_24);
+                }
+
+                viewHolder.bindToCard(model, new View.OnClickListener() {
+                    @Override
+                    public void onClick(View starView) {
+                        // Need to write to both places the post is stored
+                        DatabaseReference globalCardRef = mDatabase.child("songsDB").child(Objects.requireNonNull(cardRef.getKey()));
+
+                        // Run two transactions
+                        onStarClicked(globalCardRef);
+                    }
+                });
+            }
+
+            @Override
+            protected void onLoadingStateChanged(@NonNull LoadingState state) {
+                switch (state) {
+                    case LOADING_INITIAL:
+                    case LOADING_MORE:
+                        mSwipeRefreshLayout.setRefreshing(true);
+                        break;
+                    case LOADED:
+                    case FINISHED:
+                        mSwipeRefreshLayout.setRefreshing(false);
+                        break;
+                    case ERROR:
+                        break;
+                }
+            }
+
+            @Override
+            protected void onError(DatabaseError databaseError) {
+                mSwipeRefreshLayout.setRefreshing(false);
+            }
+        };
+
+        mRecycler.setLayoutManager(new LinearLayoutManager(getActivity()));
+        mAdapter.startListening();
+        mRecycler.setAdapter(mAdapter);
+
+        // Reload data on swipe
+        mSwipeRefreshLayout.setOnRefreshListener(new SwipeRefreshLayout.OnRefreshListener() {
+            @Override
+            public void onRefresh() {
+                //Reload Data
+                mAdapter.refresh();
+            }
+        });
+    }
+
+    private void setUpAdapterNoPagination() {
         //Sorting
-        mSharedPref = mActivity.getSharedPreferences("SortSetting", mActivity.MODE_PRIVATE);
-        String mSorting = mSharedPref.getString("Sort", "newest"); //where if no setting is selected
+        mSharedPref = Objects.requireNonNull(getActivity()).getSharedPreferences("SortSetting", Context.MODE_PRIVATE);
+        String mSorting = mSharedPref.getString("Sort", "newest");
 
 
         if (mSorting.equals("newest")) {
             //This will load the items from button means newest first
-            mLayoutManager = new LinearLayoutManager(mActivity);
+            mLayoutManager = new LinearLayoutManager(getActivity());
             mLayoutManager.setReverseLayout(true);
             mLayoutManager.setStackFromEnd(true);
         } else if (mSorting.equals("oldest")) {
             //This will load the items from bottom means oldest first
-            mLayoutManager = new LinearLayoutManager(mActivity);
+            mLayoutManager = new LinearLayoutManager(getActivity());
             mLayoutManager.setReverseLayout(false);
             mLayoutManager.setStackFromEnd(false);
         }
-
-
-        final Dialog mDialog = new Dialog(mActivity, R.style.NewDialog);
-        mDialog.addContentView(
-                new ProgressBar(mActivity),
-                new LinearLayout.LayoutParams(LinearLayout.LayoutParams.WRAP_CONTENT, LinearLayout.LayoutParams.WRAP_CONTENT)
-        );
-        mDialog.setCancelable(true);
-        mDialog.show();
-
         mRecycler.setLayoutManager(mLayoutManager);
 
         Query cardsQuery = getQuery(mDatabase);
@@ -127,7 +229,7 @@ public abstract class CardListFragment extends Fragment {
                 .setQuery(cardsQuery, Model.class)
                 .build();
 
-        mAdapter = new FirebaseRecyclerAdapter<Model, CardViewHolder>(options) {
+        final FirebaseRecyclerAdapter mAdapter2 = new FirebaseRecyclerAdapter<Model, CardViewHolder>(options) {
             @Override
             public void onBindViewHolder(@NonNull CardViewHolder viewHolder, int position, @NonNull final Model model) {
                 final DatabaseReference cardRef = getRef(position);
@@ -169,34 +271,22 @@ public abstract class CardListFragment extends Fragment {
                 LayoutInflater inflater = LayoutInflater.from(viewGroup.getContext());
                 return new CardViewHolder(inflater.inflate(R.layout.item_card, viewGroup, false));
             }
-
-            @Override
-            public void onDataChanged() {
-                super.onDataChanged();
-                mDialog.dismiss();
-            }
         };
-
-        mRecycler.setAdapter(mAdapter);
+        mAdapter2.startListening();
+        mRecycler.setAdapter(mAdapter2);
     }
 
     @Override
     public void onStart() {
         super.onStart();
-        if (mAdapter != null) {
-            mAdapter.startListening();
-        }
     }
 
     @Override
     public void onStop() {
         super.onStop();
-        if (mAdapter != null) {
-            mAdapter.stopListening();
-        }
     }
 
-    public void showSortDialog() {
+    private void showSortDialog() {
         //options to display in dialog
         String[] sortOptions = {"Жаңа", "Ескі"};
 
@@ -214,14 +304,14 @@ public abstract class CardListFragment extends Fragment {
                             //Sort by newest
                             //Edit our shared prefences
                             SharedPreferences.Editor editor = mSharedPref.edit();
-                            editor.putString("Sort", "Жаңа"); // where 'Sort' is key & 'newest' is value
+                            editor.putString("Sort", "newest"); // where 'Sort' is key & 'newest' is value
                             editor.apply();//apply / save the value in our shared preferences
                             getActivity().recreate(); //Restart acitivity to take effect
                         } else if (which == 1) {
                             //Sort by oldest
                             //Edit our shared prefences
                             SharedPreferences.Editor editor = mSharedPref.edit();
-                            editor.putString("Sort", "Ескі"); // where 'Sort' is key & 'newest' is value
+                            editor.putString("Sort", "oldest"); // where 'Sort' is key & 'newest' is value
                             editor.apply();//apply / save the value in our shared preferences
                             getActivity().recreate(); //Restart acitivity to take effect
                         }
@@ -231,7 +321,7 @@ public abstract class CardListFragment extends Fragment {
     }
 
     //Liked
-    public void onStarClicked(DatabaseReference cardRef) {
+    private void onStarClicked(DatabaseReference cardRef) {
         cardRef.runTransaction(new Transaction.Handler() {
             @NonNull
             @Override
@@ -264,7 +354,7 @@ public abstract class CardListFragment extends Fragment {
     }
 
     //GetID
-    public String getUid() {
+    String getUid() {
         return Objects.requireNonNull(FirebaseAuth.getInstance().getCurrentUser()).getUid();
     }
 
@@ -289,4 +379,6 @@ public abstract class CardListFragment extends Fragment {
     }
 
     public abstract Query getQuery(DatabaseReference databaseReference);
+
+    public abstract String getStringQuery(String databaseString);
 }

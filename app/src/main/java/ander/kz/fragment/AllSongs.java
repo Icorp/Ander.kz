@@ -7,8 +7,14 @@ public class AllSongs extends CardListFragment {
 	public AllSongs() {
 	}
 
-	@Override
-	public Query getQuery(DatabaseReference databaseReference) {
-		return databaseReference.child("songsDB");
-	}
+    @Override
+    public Query getQuery(DatabaseReference databaseReference) {
+        return databaseReference.child("songsDB");
+    }
+
+    @Override
+    public String getStringQuery(String databaseString) {
+        return "songsDB";
+    }
+
 }
